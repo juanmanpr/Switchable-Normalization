@@ -514,9 +514,8 @@ class PoseHighResolutionNet(nn.Module):
 
 class ClassificationHighResolutionNet(nn.Module):
 
-    def __init__(self, cfg, num_classes, **kwargs):
+    def __init__(self, cfg, num_classes, pretrained_layers):
         self.inplanes = 64
-        extra = cfg.MODEL.EXTRA
         super(ClassificationHighResolutionNet, self).__init__()
 
         # stem net
@@ -529,7 +528,7 @@ class ClassificationHighResolutionNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(Bottleneck, 64, 4)
 
-        self.stage2_cfg = cfg['MODEL']['EXTRA']['STAGE2']
+        self.stage2_cfg = cfg['STAGE2']
         num_channels = self.stage2_cfg['NUM_CHANNELS']
         block = blocks_dict[self.stage2_cfg['BLOCK']]
         num_channels = [
@@ -539,7 +538,7 @@ class ClassificationHighResolutionNet(nn.Module):
         self.stage2, pre_stage_channels = self._make_stage(
             self.stage2_cfg, num_channels)
 
-        self.stage3_cfg = cfg['MODEL']['EXTRA']['STAGE3']
+        self.stage3_cfg = cfg['STAGE3']
         num_channels = self.stage3_cfg['NUM_CHANNELS']
         block = blocks_dict[self.stage3_cfg['BLOCK']]
         num_channels = [
@@ -550,7 +549,7 @@ class ClassificationHighResolutionNet(nn.Module):
         self.stage3, pre_stage_channels = self._make_stage(
             self.stage3_cfg, num_channels)
 
-        self.stage4_cfg = cfg['MODEL']['EXTRA']['STAGE4']
+        self.stage4_cfg = cfg['STAGE4']
         num_channels = self.stage4_cfg['NUM_CHANNELS']
         block = blocks_dict[self.stage4_cfg['BLOCK']]
         num_channels = [
@@ -564,7 +563,7 @@ class ClassificationHighResolutionNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
-        self.pretrained_layers = cfg['MODEL']['EXTRA']['PRETRAINED_LAYERS']
+        self.pretrained_layers = pretrained_layers
 
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):
