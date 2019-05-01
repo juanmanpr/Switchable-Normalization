@@ -130,7 +130,7 @@ def main():
     niters = len(train_loader)
 
     lr_scheduler = LRScheduler(optimizer, niters, args)
-
+    rank = 0
     for epoch in range(start_epoch, args.epochs):
         #train_sampler.set_epoch(epoch)
 
