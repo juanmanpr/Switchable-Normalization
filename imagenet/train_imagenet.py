@@ -166,7 +166,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, writer
         # measure data loading time
         data_time.update(time.time() - end)
         lr_scheduler.update(i, epoch)
-        target = target.cuda(async=True)
+        target = target.cuda(non_blocking=True)
         input_var = torch.autograd.Variable(input.cuda())
         target_var = torch.autograd.Variable(target)
         # compute output
