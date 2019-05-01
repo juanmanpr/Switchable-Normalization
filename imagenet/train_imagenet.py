@@ -21,7 +21,7 @@ from devkit.dataset.imagenet_dataset import ColorAugmentation, ImagenetDataset
 
 parser = argparse.ArgumentParser(
     description='Pytorch Imagenet Training')
-parser.add_argument('--config', default='configs/config_resnetv1sn50.yaml')
+parser.add_argument('--config', default='configs/config_hr_ibn.yaml')
 parser.add_argument("--local_rank", type=int)
 parser.add_argument(
     '--port', default=29500, type=int, help='port of server')
@@ -228,7 +228,7 @@ def validate(val_loader, model, criterion, epoch, writer):
     with torch.no_grad():
         end = time.time()
         for i, (input, target) in enumerate(val_loader):
-            target = target.cuda(async=True)
+            target = target.cuda(non_blocking=True)
             input_var = torch.autograd.Variable(input.cuda(), volatile=True)
             target_var = torch.autograd.Variable(target, volatile=True)
 

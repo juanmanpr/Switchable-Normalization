@@ -1,5 +1,5 @@
 TRAIN:
-    model: resnetv1sn50
+    model: hrnet_ibna_big
     workers: 3
     batch_size: 256
     epochs: 120
@@ -18,12 +18,12 @@ TRAIN:
     using_bn: True
 
     print_freq: 100
-    model_dir: checkpoint/resnetv1sn50_cosine
+    model_dir: checkpoint/hr_ibn
 
-    train_root: data/imagenet/train
-    train_source: data/imagenet/train.txt
-    val_root: data/imagenet/val
-    val_source: data/imagenet/val.txt
+    train_root: /home/nfs/kaiyang.zhou/data/imagenet/train256x256/
+    train_source: /home/nfs/kaiyang.zhou/data/imagenet/train.txt
+    val_root: /home/nfs/kaiyang.zhou/data/imagenet/val256x256/
+    val_source: /home/nfs/kaiyang.zhou/data/imagenet/val.txt
 
 TEST:
-    checkpoint_path : data/pretrained_model/ResNet50v1+SN(8,32)-77.49.pth
+    checkpoint_path : checkpoints/

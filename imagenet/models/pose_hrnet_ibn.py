@@ -25,13 +25,13 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 
 class IBN(nn.Module):
-    def __init__(self, planes):
+    def __init__(self, planes, momentum=0.1):
         super(IBN, self).__init__()
         half1 = int(planes/2)
         self.half = half1
         half2 = planes - half1
         self.IN = nn.InstanceNorm2d(half1, affine=True)
-        self.BN = nn.BatchNorm2d(half2)
+        self.BN = nn.BatchNorm2d(half2, momentum)
     
     def forward(self, x):
         split = torch.split(x, self.half, 1)
@@ -71,13 +71,13 @@ class BasicBlock(nn.Module):
 
         return out
 
-
+        
 class Bottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, ibn=True):
         super(Bottleneck, self).__init__()
-        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         
         if ibn:
             print('Using IBN')
@@ -730,6 +730,21 @@ class ClassificationHighResolutionNet(nn.Module):
             raise ValueError('{} is not exist!'.format(pretrained))
 
 
+def hrnet_ibna_big(**kwargs):
+    """Constructs a hrnet_ibna model using switchable normalization.
+    """
+    #pretrained_layers = ['conv1', 'bn1', 'conv2', 'bn2', 'layer1', 'transition1', 'stage2', 'transition2', 'stage3', 'transition3', 'stage4']
+    pretrained_layers = []
+    stage2_cfg = {'NUM_MODULES': 1, 'NUM_BRANCHES': 2, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4,4], 'NUM_CHANNELS': [48,96], 'FUSE_METHOD': 'SUM'}
+    stage3_cfg = {'NUM_MODULES': 4, 'NUM_BRANCHES': 3, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4,4,4], 'NUM_CHANNELS': [48,96,192], 'FUSE_METHOD': 'SUM'}
+    stage4_cfg = {'NUM_MODULES': 3, 'NUM_BRANCHES': 4, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4,4,4,4], 'NUM_CHANNELS': [48,96,192,384], 'FUSE_METHOD': 'SUM'}
+    
+    cfg = {'STAGE2': stage2_cfg, 'STAGE3': stage3_cfg, 'STAGE4': stage4_cfg}
+    
+    model = ClassificationHighResolutionNet(cfg, num_classes=1000, pretrained_layers = pretrained_layers)
+    
+    return model
+    
 def get_pose_net(cfg, is_train, **kwargs):
     model = PoseHighResolutionNet(cfg, **kwargs)
 
