@@ -27,7 +27,7 @@ parser.add_argument(
     '--port', default=29500, type=int, help='port of server')
 parser.add_argument('--world-size', default=1, type=int)
 parser.add_argument('--rank', default=0, type=int)
-parser.add_argument('--model_dir', type=str)
+parser.add_argument('--model_dir', type=str, default='checkpoint/model')
 parser.add_argument('--resume_from', default='', help='resume_from')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')
@@ -44,12 +44,12 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    print('Enabled distributed training.')
+    #print('Enabled distributed training.')
 
-    rank, world_size = init_dist(
-        backend='nccl', port=args.port)
-    args.rank = rank
-    args.world_size = world_size
+    #rank, world_size = init_dist(
+    #    backend='nccl', port=args.port)
+    #args.rank = rank
+    #args.world_size = world_size
 
     # create model
     print("=> creating model '{}'".format(args.model))
@@ -60,8 +60,9 @@ def main():
         model = models.__dict__[args.model](using_moving_average=args.using_moving_average, using_bn=args.using_bn)
 
 
-    model.cuda()
-    broadcast_params(model)
+    model = torch.nn.DataParallel(model).cuda()
+    #model.cuda()
+    #broadcast_params(model)
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
@@ -109,15 +110,17 @@ def main():
             normalize,
         ]))
 
-    train_sampler = DistributedSampler(train_dataset)
-    val_sampler = DistributedSampler(val_dataset)
+    #train_sampler = DistributedSampler(train_dataset)
+    #val_sampler = DistributedSampler(val_dataset)
+    train_sampler = None
+    val_sampler = None
 
     train_loader = DataLoader(
-        train_dataset, batch_size=args.batch_size//args.world_size, shuffle=False,
+        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=False, sampler=train_sampler)
 
     val_loader = DataLoader(
-        val_dataset, batch_size=args.batch_size//args.world_size, shuffle=False,
+        val_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=False, sampler=val_sampler)
 
     if args.evaluate:
@@ -129,7 +132,7 @@ def main():
     lr_scheduler = LRScheduler(optimizer, niters, args)
 
     for epoch in range(start_epoch, args.epochs):
-        train_sampler.set_epoch(epoch)
+        #train_sampler.set_epoch(epoch)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, writer)
@@ -159,7 +162,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, writer
     # switch to train mode
     model.train()
     world_size = args.world_size
-    rank = args.rank
+    rank = 0
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
@@ -180,9 +183,9 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, writer
         reduced_prec1 = prec1.clone() / world_size
         reduced_prec5 = prec5.clone() / world_size
 
-        dist.all_reduce_multigpu([reduced_loss])
-        dist.all_reduce_multigpu([reduced_prec1])
-        dist.all_reduce_multigpu([reduced_prec5])
+        #dist.all_reduce_multigpu([reduced_loss])
+        #dist.all_reduce_multigpu([reduced_prec1])
+        #dist.all_reduce_multigpu([reduced_prec5])
 
         losses.update(reduced_loss.item(), input.size(0))
         top1.update(reduced_prec1.item(), input.size(0))
@@ -191,7 +194,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, writer
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
-        average_gradients(model)
+        #average_gradients(model)
         optimizer.step()
 
         # measure elapsed time
@@ -223,7 +226,7 @@ def validate(val_loader, model, criterion, epoch, writer):
     # switch to evaluate mode
     model.eval()
     world_size = args.world_size
-    rank = args.rank
+    rank = 0
 
     with torch.no_grad():
         end = time.time()
@@ -243,9 +246,9 @@ def validate(val_loader, model, criterion, epoch, writer):
             reduced_prec1 = prec1.clone() / world_size
             reduced_prec5 = prec5.clone() / world_size
 
-            dist.all_reduce_multigpu([reduced_loss])
-            dist.all_reduce_multigpu([reduced_prec1])
-            dist.all_reduce_multigpu([reduced_prec5])
+            #dist.all_reduce_multigpu([reduced_loss])
+            #dist.all_reduce_multigpu([reduced_prec1])
+            #dist.all_reduce_multigpu([reduced_prec5])
 
             losses.update(reduced_loss.item(), input.size(0))
             top1.update(prec1.item(), input.size(0))
